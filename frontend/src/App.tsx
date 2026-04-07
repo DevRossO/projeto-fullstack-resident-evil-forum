@@ -1,192 +1,246 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { criarJogo, listarJogos } from "./api";
-import type { CriarJogoPayload, Jogo } from "./types";
+import { FormEvent, useState } from "react";
+import re9Image from "./assets/images/re9-requiem.jpg";
+import re2Image from "./assets/images/re2-claire.webp";
+import re4Image from "./assets/images/re4.jpg";
 
-type FormState = {
-  titulo: string;
-  descricao: string;
-  ano: string;
-  capaUrl: string;
-  adminId: string;
+type Screen = "home" | "login" | "cadastro";
+
+type AuthFormState = {
+  nome: string;
+  email: string;
+  senha: string;
 };
 
-const initialFormState: FormState = {
-  titulo: "",
-  descricao: "",
-  ano: "",
-  capaUrl: "",
-  adminId: "",
+const initialLoginState: AuthFormState = {
+  nome: "",
+  email: "",
+  senha: "",
 };
+
+const initialCadastroState: AuthFormState = {
+  nome: "",
+  email: "",
+  senha: "",
+};
+
+const featuredCards = [
+  {
+    id: "re9",
+    title: "Resident Evil 9 redefine o terror com ação intensa e narrativa sombria.",
+    image: re9Image,
+    badge: "DESTAQUE",
+    large: true,
+  },
+  {
+    id: "re2",
+    title: "Resident Evil 2 é o capítulo mais assustador da franquia clássica.",
+    image: re2Image,
+    badge: "ANÁLISE",
+    large: false,
+  },
+  {
+    id: "re4",
+    title: "Resident Evil 4 elevou a franquia com ação intensa e revolucionária.",
+    image: re4Image,
+    badge: "CLÁSSICO",
+    large: false,
+  },
+];
 
 export function App() {
-  const [jogos, setJogos] = useState<Jogo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<FormState>(initialFormState);
+  const [screen, setScreen] = useState<Screen>("home");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loginForm, setLoginForm] = useState<AuthFormState>(initialLoginState);
+  const [cadastroForm, setCadastroForm] = useState<AuthFormState>(initialCadastroState);
+  const destaque = featuredCards[0];
+  const laterais = featuredCards.slice(1);
+  const navigationItems = [
+    { label: "Home", target: "home" as Screen },
+    { label: "Cadastro", target: "cadastro" as Screen },
+    { label: "Login", target: "login" as Screen },
+  ];
 
-  async function carregarJogos() {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await listarJogos();
-      setJogos(data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao carregar jogos";
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
+  function openScreen(nextScreen: Screen) {
+    setNotice(null);
+    setScreen(nextScreen);
+    setMobileMenuOpen(false);
   }
 
-  useEffect(() => {
-    void carregarJogos();
-  }, []);
-
-  const destaque = useMemo(() => jogos[0], [jogos]);
-  const secundarios = useMemo(() => jogos.slice(1, 3), [jogos]);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const payload: CriarJogoPayload = {
-      titulo: form.titulo.trim(),
-      descricao: form.descricao.trim(),
-      ano: Number(form.ano),
-      capaUrl: form.capaUrl.trim(),
-      adminId: Number(form.adminId),
-    };
-
-    if (!payload.titulo || !payload.descricao || !payload.ano || !payload.capaUrl || !payload.adminId) {
-      setError("Preencha todos os campos para cadastrar o jogo");
+    if (!loginForm.email.trim() || !loginForm.senha.trim()) {
+      setNotice("Preencha email e senha para continuar.");
       return;
     }
 
-    try {
-      setSaving(true);
-      setError(null);
-      await criarJogo(payload);
-      setForm(initialFormState);
-      await carregarJogos();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao salvar jogo";
-      setError(message);
-    } finally {
-      setSaving(false);
+    setNotice("Login pronto para a próxima etapa de autenticação.");
+  }
+
+  function handleCadastroSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!cadastroForm.nome.trim() || !cadastroForm.email.trim() || !cadastroForm.senha.trim()) {
+      setNotice("Preencha nome, email e senha para criar sua conta de usuário.");
+      return;
     }
+
+    setNotice("Cadastro de usuário preparado. Agora faça login para acessar a comunidade.");
+    setCadastroForm(initialCadastroState);
+    setScreen("login");
+  }
+
+  function renderAuthChrome(title: string, description: string, formId: string) {
+    return (
+      <section className="auth-shell">
+        <div className="auth-copy">
+          <span className="tag">{title}</span>
+          <h1>{description}</h1>
+          <p>O login e o cadastro já ficam prontos para receber a validação real quando a integração entrar.</p>
+        </div>
+
+        <form id={formId} onSubmit={formId === "login-form" ? handleLoginSubmit : handleCadastroSubmit} className="auth-form panel">
+          {formId === "cadastro-form" && (
+            <input
+              value={cadastroForm.nome}
+              onChange={(event) => setCadastroForm((old) => ({ ...old, nome: event.target.value }))}
+              placeholder="Nome"
+            />
+          )}
+          <input
+            value={formId === "login-form" ? loginForm.email : cadastroForm.email}
+            onChange={(event) =>
+              formId === "login-form"
+                ? setLoginForm((old) => ({ ...old, email: event.target.value }))
+                : setCadastroForm((old) => ({ ...old, email: event.target.value }))
+            }
+            placeholder="Email"
+            type="email"
+          />
+          <input
+            value={formId === "login-form" ? loginForm.senha : cadastroForm.senha}
+            onChange={(event) =>
+              formId === "login-form"
+                ? setLoginForm((old) => ({ ...old, senha: event.target.value }))
+                : setCadastroForm((old) => ({ ...old, senha: event.target.value }))
+            }
+            placeholder="Senha"
+            type="password"
+          />
+
+          <button type="submit" className="full">
+            {formId === "login-form" ? "Entrar" : "Criar conta"}
+          </button>
+        </form>
+      </section>
+    );
+  }
+
+  function handleNavTarget(target: Screen) {
+    openScreen(target);
   }
 
   return (
     <div className="page">
       <header className="topbar">
-        <div className="logo">RESIDENT EVIL FORUM</div>
-        <nav className="menu">
-          <a href="#destaques">Destaques</a>
-          <a href="#cadastro">Cadastrar</a>
-          <a href="#jogos">Jogos</a>
+        <button type="button" className="logo" onClick={() => openScreen("home")}>
+          RESIDENT EVIL FORUM
+        </button>
+        <button
+          type="button"
+          className="menu-toggle"
+          aria-expanded={mobileMenuOpen}
+          aria-label="Abrir menu"
+          onClick={() => setMobileMenuOpen((current) => !current)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <nav className="menu desktop-menu">
+          {navigationItems.map((item) => (
+            <button key={item.label} type="button" onClick={() => handleNavTarget(item.target)}>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        <nav className={mobileMenuOpen ? "menu mobile-menu open" : "menu mobile-menu"}>
+          {navigationItems.map((item) => (
+            <button key={item.label} type="button" onClick={() => handleNavTarget(item.target)}>
+              {item.label}
+            </button>
+          ))}
         </nav>
       </header>
 
       <main className="layout">
-        <section id="destaques" className="hero-grid">
-          <article className="hero-card big">
-            {destaque ? (
-              <>
-                <img src={destaque.capaUrl} alt={destaque.titulo} />
+        {screen === "home" && (
+          <>
+            <section className="hero-grid">
+              <article className="hero-card big">
+                <img src={destaque.image} alt={destaque.title} />
                 <div className="overlay" />
                 <div className="content">
-                  <span className="tag">DESTAQUE</span>
-                  <h1>{destaque.titulo}</h1>
-                  <p>{destaque.descricao}</p>
-                </div>
-              </>
-            ) : (
-              <div className="empty">Cadastre seu primeiro jogo para aparecer aqui.</div>
-            )}
-          </article>
-
-          <aside className="side-column">
-            {secundarios.map((jogo) => (
-              <article key={jogo.id} className="hero-card small">
-                <img src={jogo.capaUrl} alt={jogo.titulo} />
-                <div className="overlay" />
-                <div className="content">
-                  <span className="tag">ANALISE</span>
-                  <h2>{jogo.titulo}</h2>
+                  <span className="tag">{destaque.badge}</span>
+                  <h1>{destaque.title}</h1>
                 </div>
               </article>
-            ))}
-            {secundarios.length === 0 && <div className="empty side">Sem cards secundarios ainda.</div>}
-          </aside>
-        </section>
 
-        <section id="cadastro" className="panel">
-          <h3>Novo Jogo</h3>
-          <form onSubmit={handleSubmit} className="form-grid">
-            <input
-              value={form.titulo}
-              onChange={(e) => setForm((old) => ({ ...old, titulo: e.target.value }))}
-              placeholder="Titulo"
-            />
-            <input
-              value={form.ano}
-              onChange={(e) => setForm((old) => ({ ...old, ano: e.target.value }))}
-              placeholder="Ano"
-              type="number"
-            />
-            <input
-              value={form.adminId}
-              onChange={(e) => setForm((old) => ({ ...old, adminId: e.target.value }))}
-              placeholder="Admin ID"
-              type="number"
-            />
-            <input
-              value={form.capaUrl}
-              onChange={(e) => setForm((old) => ({ ...old, capaUrl: e.target.value }))}
-              placeholder="URL da capa"
-              className="full"
-            />
-            <textarea
-              value={form.descricao}
-              onChange={(e) => setForm((old) => ({ ...old, descricao: e.target.value }))}
-              placeholder="Descricao"
-              className="full"
-              rows={4}
-            />
-            <button disabled={saving} type="submit" className="full">
-              {saving ? "Salvando..." : "Publicar Jogo"}
-            </button>
-          </form>
-          {error && <p className="feedback error">{error}</p>}
-        </section>
+              <aside className="side-column">
+                {laterais.map((card) => (
+                  <article key={card.id} className="hero-card small">
+                    <img src={card.image} alt={card.title} />
+                    <div className="overlay" />
+                    <div className="content">
+                      <span className="tag">{card.badge}</span>
+                      <h2>{card.title}</h2>
+                    </div>
+                  </article>
+                ))}
+              </aside>
+            </section>
 
-        <section id="jogos" className="panel list">
-          <div className="heading-row">
-            <h3>Todos os Jogos</h3>
-            <button onClick={() => void carregarJogos()} disabled={loading}>
-              {loading ? "Atualizando..." : "Atualizar"}
-            </button>
-          </div>
-
-          {loading && <p className="feedback">Carregando jogos...</p>}
-
-          {!loading && jogos.length === 0 && <p className="feedback">Nenhum jogo cadastrado.</p>}
-
-          <div className="cards">
-            {jogos.map((jogo) => (
-              <article key={jogo.id} className="game-card">
-                <img src={jogo.capaUrl} alt={jogo.titulo} />
-                <div>
-                  <h4>{jogo.titulo}</h4>
-                  <p>{jogo.descricao}</p>
-                  <small>
-                    {jogo.ano} • Admin: {jogo.admin?.nome ?? jogo.adminId} • Avaliacoes: {jogo.avaliacoes?.length ?? 0}
-                  </small>
+            <footer className="footer panel">
+              <div>
+                <h3>Resident Evil Forum</h3>
+                <p>Comunidade feita por fãs da franquia Resident Evil.</p>
+              </div>
+              <div className="footer-links">
+                <span>Links rápidos:</span>
+                <div className="footer-links-list">
+                  {navigationItems.map((item, index) => (
+                    <span key={item.label} className="footer-link-item">
+                      <button type="button" onClick={() => handleNavTarget(item.target)}>
+                        {item.label}
+                      </button>
+                      {index < navigationItems.length - 1 ? <span className="link-separator">|</span> : null}
+                    </span>
+                  ))}
                 </div>
-              </article>
-            ))}
-          </div>
-        </section>
+              </div>
+              <div className="footer-meta">
+                <span>Desenvolvido por Felipe Rosso</span>
+                <span>Projeto acadêmico - ADS</span>
+                <div className="footer-socials">
+                  <a href="https://github.com" target="_blank" rel="noreferrer">
+                    GitHub
+                  </a>
+                  <a href="https://www.linkedin.com" target="_blank" rel="noreferrer">
+                    LinkedIn
+                  </a>
+                </div>
+                <span>© 2026 Resident Evil Forum</span>
+              </div>
+            </footer>
+          </>
+        )}
+
+        {screen === "login" && renderAuthChrome("LOGIN", "Entre na comunidade", "login-form")}
+
+        {screen === "cadastro" && renderAuthChrome("CADASTRO", "Crie sua conta de usuário", "cadastro-form")}
+
+        {notice && <p className="feedback notice">{notice}</p>}
       </main>
     </div>
   );

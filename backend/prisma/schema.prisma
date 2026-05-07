@@ -7,30 +7,35 @@ datasource db {
 }
 
 model Admin {
-  id    Int    @id @default(autoincrement())
-  nome  String
-  email String @unique
-  senha String
-  jogos Jogo[]
+  id          Int          @id @default(autoincrement())
+  nome        String
+  email       String       @unique
+  senha       String
+  jogos       Jogo[]
+  comentarios Comentario[]
 }
 
 model Usuario {
-  id         Int         @id @default(autoincrement())
-  nome       String
-  email      String      @unique
-  senha      String
-  avaliacoes Avaliacao[]
+  id          Int          @id @default(autoincrement())
+  nome        String
+  email       String       @unique
+  senha       String
+  avaliacoes  Avaliacao[]
+  comentarios Comentario[]
 }
 
 model Jogo {
-  id         Int         @id @default(autoincrement())
-  titulo     String
-  descricao  String
-  ano        Int
-  capaUrl    String
-  adminId    Int
-  avaliacoes Avaliacao[]
-  admin      Admin       @relation(fields: [adminId], references: [id])
+  id          Int          @id @default(autoincrement())
+  titulo      String
+  descricao   String
+  lore        String?
+  destaque    Boolean      @default(false)
+  ano         Int
+  capaUrl     String
+  adminId     Int
+  avaliacoes  Avaliacao[]
+  comentarios Comentario[]
+  admin       Admin        @relation(fields: [adminId], references: [id])
 }
 
 model Avaliacao {
@@ -41,4 +46,22 @@ model Avaliacao {
   jogoId     Int
   jogo       Jogo    @relation(fields: [jogoId], references: [id])
   usuario    Usuario @relation(fields: [usuarioId], references: [id])
+}
+
+model Comentario {
+  id        Int          @id @default(autoincrement())
+  texto     String
+  criadoEm  DateTime     @default(now())
+  jogoId    Int
+  usuarioId Int?
+  adminId   Int?
+  parentId  Int?
+  jogo      Jogo         @relation(fields: [jogoId], references: [id], onDelete: Cascade)
+  usuario   Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  admin     Admin?       @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  parent    Comentario?  @relation("ComentarioReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comentario[] @relation("ComentarioReplies")
+
+  @@index([jogoId])
+  @@index([parentId])
 }

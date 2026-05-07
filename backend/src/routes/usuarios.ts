@@ -48,4 +48,35 @@ router.post("/", async (req, res) => {
 	res.status(201).json(usuario);
 });
 
+router.post("/login", async (req, res) => {
+	const { email, senha } = req.body;
+
+	if (!email || !senha) {
+		res.status(400).json({ erro: "Email e senha sao obrigatorios" });
+		return;
+	}
+
+	const usuario = await prisma.usuario.findUnique({
+		where: { email },
+		select: {
+			id: true,
+			nome: true,
+			email: true,
+			senha: true,
+		},
+	});
+
+	if (!usuario || usuario.senha !== senha) {
+		res.status(401).json({ erro: "Email ou senha invalidos" });
+		return;
+	}
+
+	res.json({
+		id: usuario.id,
+		nome: usuario.nome,
+		email: usuario.email,
+		role: "usuario",
+	});
+});
+
 export default router;
